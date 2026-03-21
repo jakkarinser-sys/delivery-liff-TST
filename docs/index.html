@@ -296,7 +296,7 @@ input[type=file]{display:none}
 </div>
 
 <script>
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbxLIqwURlKtg8Abc3yH2ViReaLB-tAZBvZdqWt7mjKZH0UoErpHGtCqTblY7RQ0KCOv/exec';
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbyhXbLn8AiGHCtmKlKAJvjBhK0wWLBMoq92WW9wXsUe7U0H3xYLxLtJu1yVp_rdXMJ1/exec';
 const LIFF_ID = '2009553396-cEG6A3LK';
 
 // ── State ──
@@ -565,7 +565,7 @@ async function submitDepart() {
   if (!odo) { toast('กรุณากรอกเลขไมล์'); return; }
   toast('⏳ กำลังบันทึก...');
   await postData({action:'depart', planId:S.selectedPlan.itemId, lineUserId:S.userId,
-    lineDisplayName:S.displayName, odo:parseFloat(odo), lat:S.gpsLat, lng:S.gpsLng, note}, () => {
+    lineDisplayName:S.displayName, shop:S.selectedPlan.shop, odo:parseFloat(odo), lat:S.gpsLat, lng:S.gpsLng, note}, () => {
     closeModal('depart');
     document.getElementById('inp-depart-odo').value='';
     S.selectedPlan.status='departed';
