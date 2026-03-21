@@ -612,7 +612,7 @@ async function submitArrive() {
   if (!odo) { toast('กรุณากรอกเลขไมล์'); return; }
   toast('⏳ กำลังบันทึก...');
   await postData({action:'arrive', planId:S.selectedPlan.itemId, lineUserId:S.userId,
-    odo:parseFloat(odo), lat:S.gpsLat, lng:S.gpsLng, note}, (res) => {
+    odo:parseFloat(odo), lat:S.gpsLat, lng:S.gpsLng, note}, async (res) => {
     closeModal('arrive');
     document.getElementById('inp-arrive-odo').value='';
     S.selectedPlan.status='arrived';
