@@ -607,10 +607,11 @@ async function submitComplete() {
   });
 }
 
-// ── POST helper ──
+// ── GET helper (ใช้แทน POST เพื่อหลีกเลี่ยง CORS preflight) ──
 async function postData(payload, onSuccess) {
   try {
-    const r = await fetch(GAS_URL, {method:'POST', headers:{'Content-Type':'text/plain'}, body:JSON.stringify(payload)});
+    const params = new URLSearchParams(payload).toString();
+    const r = await fetch(`${GAS_URL}?${params}`);
     const d = await r.json();
     if (d.success) onSuccess(d);
     else if (d.alreadyRecorded) { toast(`ℹ️ บันทึกไปแล้ว (${statusTh(d.status)})`); await restoreTripState(S.selectedPlan.planId); }
