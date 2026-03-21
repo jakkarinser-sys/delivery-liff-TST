@@ -108,10 +108,6 @@ body{font-family:-apple-system,'Helvetica Neue',sans-serif;background:var(--bg);
 .odo-display{background:#1A1A2E;color:#00E5FF;font-family:'Courier New',monospace;font-size:30px;letter-spacing:4px;padding:12px 16px;border-radius:10px;text-align:center;margin-bottom:4px}
 .odo-hint{font-size:11px;color:var(--text2);text-align:center;margin-bottom:14px}
 
-/* Photo */
-.photo-btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:13px;border:2px dashed var(--border);border-radius:12px;background:#FAFAFA;cursor:pointer;font-size:14px;color:var(--text2);margin-bottom:14px;-webkit-appearance:none}
-.photo-btn.has-photo{border-color:var(--g);color:var(--g);background:var(--g50)}
-.photo-preview{width:100%;max-height:160px;object-fit:cover;border-radius:10px;margin-bottom:14px;display:none}
 input[type=file]{display:none}
 
 .btn-primary{width:100%;padding:15px;background:var(--g);color:#fff;border:none;border-radius:13px;font-size:16px;font-weight:700;cursor:pointer;margin-bottom:8px}
@@ -263,11 +259,6 @@ input[type=file]{display:none}
       oninput="document.getElementById('disp-depart-odo').textContent=this.value||'——————'">
     <label class="inp-label">หมายเหตุ (ถ้ามี)</label>
     <input class="inp" type="text" id="inp-depart-note" placeholder="เพิ่มเติม...">
-    <input type="file" id="photo-file-depart" accept="image/*" capture="camera" onchange="previewPhoto('depart',this)">
-    <button class="photo-btn" id="photo-btn-depart" onclick="document.getElementById('photo-file-depart').click()">
-      📷 ถ่ายรูปก่อนออกเดินทาง (ไม่บังคับ)
-    </button>
-    <img id="photo-preview-depart" class="photo-preview" alt="">
     <button class="btn-primary" onclick="submitDepart()">✅ ยืนยันออกเดินทาง</button>
     <button class="btn-secondary" onclick="closeModal('depart')">ยกเลิก</button>
   </div>
@@ -286,11 +277,6 @@ input[type=file]{display:none}
       oninput="document.getElementById('disp-arrive-odo').textContent=this.value||'——————'">
     <label class="inp-label">หมายเหตุ (ถ้ามี)</label>
     <input class="inp" type="text" id="inp-arrive-note" placeholder="เพิ่มเติม...">
-    <input type="file" id="photo-file-arrive" accept="image/*" capture="camera" onchange="previewPhoto('arrive',this)">
-    <button class="photo-btn" id="photo-btn-arrive" onclick="document.getElementById('photo-file-arrive').click()">
-      📷 ถ่ายรูปหลักฐานการส่ง <span style="color:var(--red)">*จำเป็น</span>
-    </button>
-    <img id="photo-preview-arrive" class="photo-preview" alt="">
     <button class="btn-primary amber" onclick="submitArrive()">✅ ยืนยันถึงปลายทาง</button>
     <button class="btn-secondary" onclick="closeModal('arrive')">ยกเลิก</button>
   </div>
@@ -572,50 +558,15 @@ function closeModal(type) {
   document.getElementById(`modal-${type}`).classList.remove('open');
 }
 
-// ── Photo ──
-function previewPhoto(stage, input) {
-  const file = input.files[0]; if (!file) return;
-  const prev = document.getElementById(`photo-preview-${stage}`);
-  const btn  = document.getElementById(`photo-btn-${stage}`);
-  prev.src = URL.createObjectURL(file); prev.style.display='block';
-  btn.classList.add('has-photo'); btn.textContent='✅ เลือกรูปแล้ว (แตะเพื่อเปลี่ยน)';
-}
-function resetPhoto(stage) {
-  const prev = document.getElementById(`photo-preview-${stage}`);
-  const btn  = document.getElementById(`photo-btn-${stage}`);
-  const inp  = document.getElementById(`photo-file-${stage}`);
-  prev.style.display='none'; prev.src=''; btn.classList.remove('has-photo');
-  inp.value='';
-  btn.innerHTML = stage==='arrive'
-    ? '📷 ถ่ายรูปหลักฐานการส่ง <span style="color:var(--red)">*จำเป็น</span>'
-    : '📷 ถ่ายรูปก่อนออกเดินทาง (ไม่บังคับ)';
-}
-async function uploadPhoto(stage) {
-  const inp = document.getElementById(`photo-file-${stage}`);
-  if (!inp.files[0]) return null;
-  const file = inp.files[0];
-  const b64  = await fileToBase64(file);
-  try {
-    const r = await fetch(GAS_URL, {method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({action:'uploadPhoto', planId:S.selectedPlan.planId, lineUserId:S.userId,
-        photoBase64:b64.split(',')[1], mimeType:file.type, stage})});
-    const d = await r.json(); return d.fileUrl || null;
-  } catch { return null; }
-}
-function fileToBase64(file) {
-  return new Promise((res,rej) => { const r=new FileReader(); r.onload=()=>res(r.result); r.onerror=rej; r.readAsDataURL(file); });
-}
-
 // ── Submit Depart ──
 async function submitDepart() {
   const odo  = document.getElementById('inp-depart-odo').value;
   const note = document.getElementById('inp-depart-note').value;
   if (!odo) { toast('กรุณากรอกเลขไมล์'); return; }
   toast('⏳ กำลังบันทึก...');
-  await uploadPhoto('depart');
   await postData({action:'depart', planId:S.selectedPlan.itemId, lineUserId:S.userId,
     lineDisplayName:S.displayName, odo:parseFloat(odo), lat:S.gpsLat, lng:S.gpsLng, note}, () => {
-    closeModal('depart'); resetPhoto('depart');
+    closeModal('depart');
     document.getElementById('inp-depart-odo').value='';
     S.selectedPlan.status='departed';
     updateStatusBadge('departed'); updateButtons('departed');
@@ -630,17 +581,10 @@ async function submitArrive() {
   const odo  = document.getElementById('inp-arrive-odo').value;
   const note = document.getElementById('inp-arrive-note').value;
   if (!odo) { toast('กรุณากรอกเลขไมล์'); return; }
-  const inp = document.getElementById('photo-file-arrive');
-  const ts  = await fetchTripStateQuiet(S.selectedPlan.planId);
-  if (!inp.files[0] && !(ts && ts.arrivePhoto)) {
-    toast('📷 กรุณาถ่ายรูปหลักฐานก่อน');
-    document.getElementById('photo-btn-arrive').style.borderColor='var(--red)'; return;
-  }
-  toast('⏳ กำลังอัปโหลดและบันทึก...');
-  await uploadPhoto('arrive');
+  toast('⏳ กำลังบันทึก...');
   await postData({action:'arrive', planId:S.selectedPlan.itemId, lineUserId:S.userId,
     odo:parseFloat(odo), lat:S.gpsLat, lng:S.gpsLng, note}, (res) => {
-    closeModal('arrive'); resetPhoto('arrive');
+    closeModal('arrive');
     document.getElementById('inp-arrive-odo').value='';
     S.selectedPlan.status='arrived';
     updateStatusBadge('arrived'); updateButtons('arrived');
