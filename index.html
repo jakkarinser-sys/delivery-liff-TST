@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>บันทึกการจัดส่ง</title>
+<script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+<style>
+:root {
+  --g:#06C755; --gd:#05A847; --g50:#E8FBF0; --g100:#B8F0D0;
+  --blue:#1565C0; --amber:#E65100; --red:#C62828;
+  --bg:#F2F2F7; --card:#fff; --text:#1C1C1E; --text2:#6C6C70;
+  --border:#E5E5EA; --r:14px;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden}
+body{font-family:-apple-system,'Helvetica Neue',sans-serif;background:var(--bg);color:var(--text);font-size:15px;display:flex;flex-direction:column}
+
+/* Header */
+.header{background:var(--g);padding:max(env(safe-area-inset-top),12px) 16px 14px;display:flex;align-items:center;gap:10px;flex-shrink:0}
+.avatar{width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.25);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;color:#fff;border:2px solid rgba(255,255,255,.4);overflow:hidden}
+.avatar img{width:100%;height:100%;object-fit:cover}
+.hname{font-size:16px;font-weight:700;color:#fff;line-height:1.2}
+.hdate{font-size:12px;color:rgba(255,255,255,.8);margin-top:1px}
+.hbadge{margin-left:auto;background:rgba(255,255,255,.22);border-radius:20px;padding:4px 11px;font-size:12px;font-weight:600;color:#fff;white-space:nowrap}
+
+/* Pages */
+.page{display:none;flex:1;overflow-y:auto;padding:14px;-webkit-overflow-scrolling:touch}
+.page.active{display:block}
+.sec-label{font-size:11px;font-weight:700;color:var(--text2);letter-spacing:.6px;text-transform:uppercase;margin:0 2px 8px}
+
+/* ── Trip card (expandable) ── */
+.trip-card{background:var(--card);border-radius:var(--r);margin-bottom:10px;border:0.5px solid var(--border);overflow:hidden}
+.trip-header{padding:14px;display:flex;align-items:center;gap:10px;cursor:pointer;user-select:none}
+.trip-no{background:var(--g);color:#fff;font-size:12px;font-weight:700;padding:4px 10px;border-radius:20px;white-space:nowrap;flex-shrink:0}
+.trip-summary{flex:1;min-width:0}
+.trip-title{font-size:14px;font-weight:700}
+.trip-meta{font-size:12px;color:var(--text2);margin-top:2px}
+.trip-right{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0}
+.prog-text{font-size:11px;font-weight:700;color:var(--g)}
+.chevron{font-size:13px;color:var(--text2);transition:transform .25s;margin-left:4px;flex-shrink:0}
+.chevron.open{transform:rotate(180deg)}
+.prog-bar{height:3px;background:#E5E5EA;margin:0 14px}
+.prog-fill{height:100%;background:var(--g);border-radius:2px;transition:width .4s}
+.shop-list{padding:6px 14px 14px}
+.shop-item{display:flex;align-items:center;gap:10px;padding:11px 0;border-bottom:0.5px solid var(--border)}
+.shop-item:last-child{border:none;padding-bottom:0}
+.shop-step{width:28px;height:28px;border-radius:50%;background:var(--bg);border:1.5px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--text2);flex-shrink:0}
+.shop-step.done{background:var(--g);border-color:var(--g);color:#fff}
+.shop-step.active{background:#fff;border-color:var(--g);color:var(--g)}
+.shop-info{flex:1;min-width:0}
+.shop-name{font-size:13px;font-weight:600;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.shop-meta{font-size:11px;color:var(--text2);margin-top:2px;line-height:1.4}
+.btn-go{background:var(--g);color:#fff;border:none;border-radius:10px;padding:8px 14px;font-size:13px;font-weight:700;cursor:pointer}
+.btn-cont{background:#EDF4FF;color:var(--blue);border:none;border-radius:10px;padding:8px 12px;font-size:13px;font-weight:700;cursor:pointer}
+.btn-next{background:var(--bg);color:var(--text2);border:0.5px solid var(--border);border-radius:10px;padding:8px 12px;font-size:13px;font-weight:600;cursor:pointer}
+.btn-done-sm{background:var(--g50);color:#0A5C2A;border:none;border-radius:10px;padding:8px 10px;font-size:11px;font-weight:700}
+
+/* Status badges */
+.sb{font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;display:inline-block;white-space:nowrap}
+.sb-pending{background:#FFF3E0;color:#BF360C}
+.sb-active{background:#E3F2FD;color:#0D47A1}
+.sb-done{background:var(--g50);color:#0A5C2A}
+.sb-complete{background:#F3E5F5;color:#4A148C}
+
+/* ── Record page ── */
+.clock-card{background:var(--g);border-radius:var(--r);padding:16px;margin-bottom:10px;text-align:center}
+.clock-time{font-size:44px;font-weight:700;color:#fff;letter-spacing:2px;font-variant-numeric:tabular-nums}
+.clock-date{font-size:13px;color:rgba(255,255,255,.8);margin-top:2px}
+.gps-chip{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.2);border-radius:20px;padding:5px 13px;margin-top:10px}
+.gps-dot{width:8px;height:8px;border-radius:50%;background:#fff;flex-shrink:0}
+.gps-dot.waiting{animation:gpspulse 1.4s infinite}
+@keyframes gpspulse{0%,100%{opacity:1}50%{opacity:.25}}
+.gps-label{font-size:12px;color:#fff}
+
+.selected-card{background:var(--card);border-radius:var(--r);padding:14px;margin-bottom:10px;border:0.5px solid var(--border)}
+.sc-trip{font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px}
+.sc-shop{font-size:16px;font-weight:700;line-height:1.3}
+.sc-meta{font-size:13px;color:var(--text2);margin-top:4px}
+
+/* Resume banner */
+.resume-banner{background:#EDF4FF;border-left:3px solid var(--blue);border-radius:0 10px 10px 0;padding:10px 14px;margin-bottom:10px;font-size:13px;color:var(--blue);display:none}
+.resume-banner.show{display:block}
+.resume-banner strong{display:block;font-size:13px;margin-bottom:3px}
+
+/* Action buttons */
+.action-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.action-btn{border:none;border-radius:14px;padding:18px 12px;font-size:14px;font-weight:700;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:7px;line-height:1.2;width:100%}
+.action-btn .ab-icon{font-size:26px;line-height:1}
+.ab-green{background:var(--g);color:#fff}
+.ab-green:disabled{background:#C8EDD6;color:#6BAF82;pointer-events:none}
+.ab-amber{background:#F57C00;color:#fff}
+.ab-amber:disabled{background:#FFE0B2;color:#BF5E00;pointer-events:none}
+.ab-return{background:var(--bg);border:1.5px solid var(--border);color:var(--text2);border-radius:14px;padding:14px;font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;width:100%;margin-bottom:10px}
+.ab-return.show{display:flex}
+
+/* ── Modal ── */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:100;align-items:flex-end;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal{background:var(--card);border-radius:20px 20px 0 0;padding:20px;width:100%;max-height:88vh;overflow-y:auto;padding-bottom:max(20px,env(safe-area-inset-bottom))}
+.modal-handle{width:36px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 16px}
+.modal-title{font-size:17px;font-weight:700;margin-bottom:2px}
+.modal-shop{font-size:13px;color:var(--text2);margin-bottom:18px}
+
+.inp-label{display:block;font-size:13px;font-weight:600;color:var(--text2);margin-bottom:6px}
+.inp{width:100%;padding:13px 14px;border:1.5px solid var(--border);border-radius:12px;font-size:16px;color:var(--text);background:#fff;margin-bottom:14px;-webkit-appearance:none}
+.inp:focus{outline:none;border-color:var(--g)}
+.odo-display{background:#1A1A2E;color:#00E5FF;font-family:'Courier New',monospace;font-size:30px;letter-spacing:4px;padding:12px 16px;border-radius:10px;text-align:center;margin-bottom:4px}
+.odo-hint{font-size:11px;color:var(--text2);text-align:center;margin-bottom:14px}
+
+/* Photo */
+.photo-btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:13px;border:2px dashed var(--border);border-radius:12px;background:#FAFAFA;cursor:pointer;font-size:14px;color:var(--text2);margin-bottom:14px;-webkit-appearance:none}
+.photo-btn.has-photo{border-color:var(--g);color:var(--g);background:var(--g50)}
+.photo-preview{width:100%;max-height:160px;object-fit:cover;border-radius:10px;margin-bottom:14px;display:none}
+input[type=file]{display:none}
+
+.btn-primary{width:100%;padding:15px;background:var(--g);color:#fff;border:none;border-radius:13px;font-size:16px;font-weight:700;cursor:pointer;margin-bottom:8px}
+.btn-primary.amber{background:#F57C00}
+.btn-secondary{width:100%;padding:13px;background:transparent;border:1.5px solid var(--border);border-radius:13px;font-size:15px;font-weight:600;color:var(--text2);cursor:pointer}
+
+/* ── History page ── */
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+.stat-card{background:var(--card);border-radius:12px;padding:14px;border:0.5px solid var(--border);text-align:center}
+.stat-label{font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.4px}
+.stat-val{font-size:32px;font-weight:700;color:var(--g);margin:4px 0 2px;line-height:1}
+.stat-unit{font-size:12px;color:var(--text2)}
+.hist-item{background:var(--card);border-radius:var(--r);padding:14px;margin-bottom:10px;border:0.5px solid var(--border)}
+.hist-shop{font-size:14px;font-weight:600}
+.hist-row{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.hist-pill{background:var(--bg);border-radius:8px;padding:4px 9px;font-size:12px;color:var(--text2)}
+
+/* Empty */
+.empty{text-align:center;padding:48px 20px;color:var(--text2)}
+.empty-icon{font-size:44px;margin-bottom:12px;display:block}
+
+/* Tab bar */
+.tabbar{background:rgba(255,255,255,.96);border-top:0.5px solid var(--border);display:flex;padding:8px 0;padding-bottom:max(8px,env(safe-area-inset-bottom));flex-shrink:0}
+.tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;padding:2px 0}
+.tab .ticon{font-size:22px;line-height:1}
+.tab .tlabel{font-size:10px;color:var(--text2);font-weight:500}
+.tab.active .tlabel{color:var(--g);font-weight:700}
+.tab-dot{width:5px;height:5px;border-radius:50%;background:var(--g);margin:2px auto 0;opacity:0}
+.tab.active .tab-dot{opacity:1}
+
+/* Toast */
+#toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(10px);background:rgba(0,0,0,.82);color:#fff;padding:10px 20px;border-radius:24px;font-size:14px;opacity:0;transition:all .25s;pointer-events:none;z-index:999;white-space:nowrap;max-width:90vw;text-align:center}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* Loading */
+#loading{position:fixed;inset:0;background:rgba(255,255,255,.92);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:200}
+.spinner{width:38px;height:38px;border:3px solid #E5E5EA;border-top-color:var(--g);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-text{margin-top:12px;color:var(--text2);font-size:14px}
+</style>
+</head>
+<body>
+
+<div id="loading"><div class="spinner"></div><div class="loading-text">กำลังโหลด...</div></div>
+<div id="toast"></div>
+
+<!-- Header -->
+<div class="header">
+  <div class="avatar" id="avatar-wrap">
+    <img id="avatar-img" src="" alt="" style="display:none">
+    <span id="avatar-initials">?</span>
+  </div>
+  <div>
+    <div class="hname" id="driver-name">กำลังโหลด...</div>
+    <div class="hdate" id="today-date"></div>
+  </div>
+  <div class="hbadge" id="trip-count">—</div>
+</div>
+
+<!-- ── PAGE: แผนงาน ── -->
+<div id="page-plans" class="page active">
+  <div class="sec-label">แผนงานวันนี้</div>
+  <div id="plans-list"><div class="empty"><span class="empty-icon">📋</span>กำลังโหลดแผนงาน...</div></div>
+</div>
+
+<!-- ── PAGE: บันทึก ── -->
+<div id="page-record" class="page">
+  <div class="clock-card">
+    <div class="clock-time" id="clock">00:00:00</div>
+    <div class="clock-date" id="clock-date"></div>
+    <div class="gps-chip">
+      <div class="gps-dot waiting" id="gps-dot"></div>
+      <div class="gps-label" id="gps-text">กำลังรับ GPS...</div>
+    </div>
+  </div>
+
+  <div class="resume-banner" id="resume-banner">
+    <strong>🔄 ต่อจากที่บันทึกไว้</strong>
+    <span id="resume-detail"></span>
+  </div>
+
+  <div id="no-plan-msg" style="text-align:center;padding:24px 0;color:var(--text2);font-size:14px">
+    กรุณาเลือกร้านจากแถบ "แผนงาน" ก่อน
+  </div>
+
+  <div id="record-content" style="display:none">
+    <div class="selected-card">
+      <div class="sc-trip" id="sel-trip"></div>
+      <div class="sc-shop" id="sel-shop"></div>
+      <div class="sc-meta" id="sel-meta"></div>
+      <div style="margin-top:8px"><span class="sb" id="sel-status"></span></div>
+    </div>
+
+    <div class="action-grid">
+      <button class="action-btn ab-green" id="btn-depart" onclick="openModal('depart')">
+        <span class="ab-icon">🚗</span>ออกจากต้นทาง
+      </button>
+      <button class="action-btn ab-amber" id="btn-arrive" onclick="openModal('arrive')">
+        <span class="ab-icon">📍</span>ถึงปลายทาง
+      </button>
+    </div>
+    <button class="ab-return" id="btn-complete" onclick="openModal('complete')" style="display:none">
+      🏢 กลับถึงบริษัทแล้ว
+    </button>
+  </div>
+</div>
+
+<!-- ── PAGE: ประวัติ ── -->
+<div id="page-history" class="page">
+  <div class="stat-grid">
+    <div class="stat-card">
+      <div class="stat-label">เที่ยววันนี้</div>
+      <div class="stat-val" id="stat-trips">—</div>
+      <div class="stat-unit">ร้านค้า</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">ระยะรวม</div>
+      <div class="stat-val" id="stat-dist">—</div>
+      <div class="stat-unit">กิโลเมตร</div>
+    </div>
+  </div>
+  <div class="sec-label">รายละเอียด</div>
+  <div id="history-list"><div class="empty"><span class="empty-icon">📊</span>ยังไม่มีการบันทึก</div></div>
+</div>
+
+<!-- Tab bar -->
+<div class="tabbar">
+  <div class="tab active" id="tab-plans" onclick="switchTab('plans')">
+    <span class="ticon">📋</span><div class="tab-dot"></div><div class="tlabel">แผนงาน</div>
+  </div>
+  <div class="tab" id="tab-record" onclick="switchTab('record')">
+    <span class="ticon">✍️</span><div class="tab-dot"></div><div class="tlabel">บันทึก</div>
+  </div>
+  <div class="tab" id="tab-history" onclick="switchTab('history')">
+    <span class="ticon">📊</span><div class="tab-dot"></div><div class="tlabel">ประวัติ</div>
+  </div>
+</div>
+
+<!-- ── Modal: Depart ── -->
+<div class="modal-overlay" id="modal-depart">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">🚗 ออกจากต้นทาง</div>
+    <div class="modal-shop" id="md-depart-shop"></div>
+    <div class="odo-display" id="disp-depart-odo">——————</div>
+    <div class="odo-hint">เลขไมล์ก่อนออกเดินทาง</div>
+    <label class="inp-label">เลขไมล์ (km)</label>
+    <input class="inp" type="number" id="inp-depart-odo" inputmode="numeric" placeholder="เช่น 125430"
+      oninput="document.getElementById('disp-depart-odo').textContent=this.value||'——————'">
+    <label class="inp-label">หมายเหตุ (ถ้ามี)</label>
+    <input class="inp" type="text" id="inp-depart-note" placeholder="เพิ่มเติม...">
+    <input type="file" id="photo-file-depart" accept="image/*" capture="camera" onchange="previewPhoto('depart',this)">
+    <button class="photo-btn" id="photo-btn-depart" onclick="document.getElementById('photo-file-depart').click()">
+      📷 ถ่ายรูปก่อนออกเดินทาง (ไม่บังคับ)
+    </button>
+    <img id="photo-preview-depart" class="photo-preview" alt="">
+    <button class="btn-primary" onclick="submitDepart()">✅ ยืนยันออกเดินทาง</button>
+    <button class="btn-secondary" onclick="closeModal('depart')">ยกเลิก</button>
+  </div>
+</div>
+
+<!-- ── Modal: Arrive ── -->
+<div class="modal-overlay" id="modal-arrive">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">📍 ถึงปลายทาง</div>
+    <div class="modal-shop" id="md-arrive-shop"></div>
+    <div class="odo-display" id="disp-arrive-odo">——————</div>
+    <div class="odo-hint">เลขไมล์เมื่อถึงปลายทาง</div>
+    <label class="inp-label">เลขไมล์ (km)</label>
+    <input class="inp" type="number" id="inp-arrive-odo" inputmode="numeric" placeholder="เช่น 125468"
+      oninput="document.getElementById('disp-arrive-odo').textContent=this.value||'——————'">
+    <label class="inp-label">หมายเหตุ (ถ้ามี)</label>
+    <input class="inp" type="text" id="inp-arrive-note" placeholder="เพิ่มเติม...">
+    <input type="file" id="photo-file-arrive" accept="image/*" capture="camera" onchange="previewPhoto('arrive',this)">
+    <button class="photo-btn" id="photo-btn-arrive" onclick="document.getElementById('photo-file-arrive').click()">
+      📷 ถ่ายรูปหลักฐานการส่ง <span style="color:var(--red)">*จำเป็น</span>
+    </button>
+    <img id="photo-preview-arrive" class="photo-preview" alt="">
+    <button class="btn-primary amber" onclick="submitArrive()">✅ ยืนยันถึงปลายทาง</button>
+    <button class="btn-secondary" onclick="closeModal('arrive')">ยกเลิก</button>
+  </div>
+</div>
+
+<!-- ── Modal: Complete ── -->
+<div class="modal-overlay" id="modal-complete">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">🏢 กลับถึงบริษัท</div>
+    <div class="modal-shop">ยืนยันการกลับถึงบริษัทเรียบร้อย</div>
+    <label class="inp-label">เลขไมล์กลับถึงบริษัท (km)</label>
+    <input class="inp" type="number" id="inp-complete-odo" inputmode="numeric" placeholder="เช่น 125500">
+    <button class="btn-primary" style="background:var(--red)" onclick="submitComplete()">✅ ยืนยันกลับถึงบริษัท</button>
+    <button class="btn-secondary" onclick="closeModal('complete')">ยกเลิก</button>
+  </div>
+</div>
+
+<script>
+const GAS_URL = 'YOUR_GAS_WEBAPP_URL';
+const LIFF_ID = 'YOUR_LIFF_ID';
+
+// ── State ──
+const S = {
+  userId:null, displayName:null, pictureUrl:null,
+  todayStr:'', trips:[], selectedPlan:null,
+  gpsLat:null, gpsLng:null, gpsReady:false
+};
+
+// ── Init ──
+async function init() {
+  const now = new Date();
+  S.todayStr = now.toISOString().slice(0,10);
+  const dateStr = now.toLocaleDateString('th-TH',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+  document.getElementById('today-date').textContent  = dateStr;
+  document.getElementById('clock-date').textContent  = dateStr;
+
+  try {
+    await liff.init({ liffId: LIFF_ID });
+    if (!liff.isLoggedIn()) { liff.login(); return; }
+    const p = await liff.getProfile();
+    S.userId = p.userId; S.displayName = p.displayName; S.pictureUrl = p.pictureUrl;
+    document.getElementById('driver-name').textContent = p.displayName;
+    document.getElementById('avatar-initials').textContent = p.displayName.slice(0,2);
+    if (p.pictureUrl) {
+      const img = document.getElementById('avatar-img');
+      img.src = p.pictureUrl; img.style.display='block';
+      document.getElementById('avatar-initials').style.display='none';
+    }
+  } catch {
+    S.userId='dev'; S.displayName='โหมดทดสอบ';
+    document.getElementById('driver-name').textContent='โหมดทดสอบ';
+    document.getElementById('avatar-initials').textContent='ทด';
+  }
+
+  startClock(); getGPS(); await loadPlans();
+  document.getElementById('loading').style.display='none';
+}
+
+// ── Clock ──
+function startClock() {
+  const el = document.getElementById('clock');
+  const tick = () => el.textContent = new Date().toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  tick(); setInterval(tick, 1000);
+}
+
+// ── GPS ──
+function getGPS() {
+  if (!navigator.geolocation) return;
+  navigator.geolocation.watchPosition(pos => {
+    S.gpsLat = pos.coords.latitude.toFixed(6);
+    S.gpsLng = pos.coords.longitude.toFixed(6);
+    S.gpsReady = true;
+    document.getElementById('gps-dot').classList.remove('waiting');
+    document.getElementById('gps-text').textContent = `${S.gpsLat}, ${S.gpsLng}`;
+  }, () => {
+    document.getElementById('gps-text').textContent = 'ไม่สามารถรับ GPS';
+  }, {enableHighAccuracy:true, maximumAge:10000});
+}
+
+// ── Load Plans → group by TripNo → sub-group by planId ──
+async function loadPlans() {
+  const url = `${GAS_URL}?action=plans&date=${S.todayStr}&lineUserId=${S.userId}`;
+  try {
+    const r    = await fetch(url);
+    const data = await r.json();
+    const plans = data.plans || [];
+
+    // Group by TripNo
+    const tripMap = {};
+    for (const p of plans) {
+      const k = String(p.tripNo || '1');
+      if (!tripMap[k]) tripMap[k] = {};
+      // Sub-group by planId (รวมหลายร้านใน PlanID เดียว)
+      if (!tripMap[k][p.planId]) tripMap[k][p.planId] = [];
+      tripMap[k][p.planId].push(p);
+    }
+
+    // แปลงเป็น array trips → planGroups → shops
+    S.trips = Object.entries(tripMap).map(([no, planGroups]) => ({
+      no,
+      planGroups: Object.entries(planGroups).map(([planId, shops]) => ({ planId, shops }))
+    }));
+
+    renderTrips();
+    const totalShops = plans.length;
+    document.getElementById('trip-count').textContent = `${S.trips.length} เที่ยว`;
+  } catch(e) {
+    document.getElementById('plans-list').innerHTML =
+      `<div class="empty"><span class="empty-icon">⚠️</span>โหลดไม่ได้: ${e.message}</div>`;
+  }
+}
+
+function renderTrips() {
+  const el = document.getElementById('plans-list');
+  if (!S.trips.length) {
+    el.innerHTML = `<div class="empty"><span class="empty-icon">✅</span>ไม่มีแผนงานวันนี้</div>`;
+    return;
+  }
+
+  el.innerHTML = S.trips.map((trip, ti) => {
+    // นับร้านทั้งหมดและที่เสร็จแล้วในเที่ยวนี้
+    const allShops   = trip.planGroups.flatMap(g => g.shops);
+    const doneCount  = allShops.filter(s => s.status==='arrived'||s.status==='completed').length;
+    const total      = allShops.length;
+    const pct        = total ? Math.round(doneCount/total*100) : 0;
+    const hasActive  = allShops.some(s => s.status==='departed');
+    const allDone    = doneCount === total;
+    const tripStatus = allDone ? 'sb-complete' : hasActive||doneCount>0 ? 'sb-active' : 'sb-pending';
+    const tripLabel  = allDone ? 'ครบแล้ว' : hasActive||doneCount>0 ? 'กำลังส่ง' : 'รอดำเนินการ';
+    const totalDist  = allShops.reduce((s,p) => s+(parseFloat(p.dist)||0), 0).toFixed(1);
+    const expanded   = ti === 0;
+
+    // render แต่ละ PlanID group
+    const planRows = trip.planGroups.map((group, gi) => {
+      const multiShop = group.shops.length > 1;
+
+      const shopRows = group.shops.map((shop, si) => {
+        const isDone   = shop.status==='arrived'||shop.status==='completed';
+        const isActive = shop.status==='departed';
+        const stepCls  = isDone ? 'done' : isActive ? 'active' : '';
+        const stepLbl  = isDone ? '✓' : si+1;
+        const meta     = isDone   ? `ส่งแล้ว · ${shop.dist} km`
+                       : isActive ? `กำลังเดินทาง · ${shop.dist} km`
+                       : `รอดำเนินการ · ${shop.dist} km`;
+        const btn      = isDone   ? `<span class="btn-done-sm">ส่งแล้ว ✓</span>`
+                       : isActive ? `<button class="btn-cont" onclick="selectShop('${shop.itemId}')">ต่อ</button>`
+                       :            `<button class="btn-next" onclick="selectShop('${shop.itemId}')">เลือก</button>`;
+
+        // ถ้า PlanID มีหลายร้าน indent ร้านย่อยเข้าไปเล็กน้อย
+        const indent = multiShop ? 'padding-left:10px;border-left:2px solid var(--border);margin-left:8px' : '';
+        return `
+          <div class="shop-item" style="${indent}">
+            <div class="shop-step ${stepCls}">${stepLbl}</div>
+            <div class="shop-info">
+              <div class="shop-name">${shop.shop}</div>
+              <div class="shop-meta">${shop.planId}${multiShop ? ` · ร้านที่ ${si+1}/${group.shops.length}` : ''} · ${meta}</div>
+            </div>
+            <div>${btn}</div>
+          </div>`;
+      }).join('');
+
+      // ถ้ามีหลายร้านใน PlanID เดียว ใส่ label PlanID คั่น
+      const planHeader = multiShop
+        ? `<div style="font-size:11px;font-weight:700;color:var(--text2);padding:8px 0 4px;letter-spacing:.3px">${group.planId} · ${group.shops.length} ร้าน</div>`
+        : '';
+
+      return planHeader + shopRows;
+    }).join('');
+
+    return `
+      <div class="trip-card">
+        <div class="trip-header" onclick="toggleTrip('trip-${ti}')">
+          <div class="trip-no">เที่ยว ${trip.no}</div>
+          <div class="trip-summary">
+            <div class="trip-title">${total} ร้านค้า</div>
+            <div class="trip-meta">${trip.planGroups.length} แผนงาน · รวม ~${totalDist} km</div>
+          </div>
+          <div class="trip-right">
+            <span class="prog-text">${doneCount}/${total} ร้าน</span>
+            <span class="sb ${tripStatus}">${tripLabel}</span>
+          </div>
+          <span class="chevron ${expanded?'open':''}" id="chv-trip-${ti}">▼</span>
+        </div>
+        <div class="prog-bar"><div class="prog-fill" style="width:${pct}%"></div></div>
+        <div class="shop-list" id="trip-${ti}" style="${expanded?'':'display:none'}">${planRows}</div>
+      </div>`;
+  }).join('');
+}
+
+function toggleTrip(id) {
+  const sl  = document.getElementById(id);
+  const chv = document.getElementById('chv-'+id);
+  const open = sl.style.display !== 'none';
+  sl.style.display = open ? 'none' : 'block';
+  chv.classList.toggle('open', !open);
+}
+
+// ── Select shop — รับ itemId ──
+async function selectShop(itemId) {
+  // ค้นหา shop จาก itemId ในทุก trip และทุก planGroup
+  let found = null;
+  for (const trip of S.trips) {
+    for (const group of trip.planGroups) {
+      const s = group.shops.find(s => s.itemId === itemId);
+      if (s) { found = {...s, tripNo: trip.no}; break; }
+    }
+    if (found) break;
+  }
+  if (!found) return;
+  S.selectedPlan = found;
+
+  document.getElementById('no-plan-msg').style.display   = 'none';
+  document.getElementById('record-content').style.display = 'block';
+  document.getElementById('sel-trip').textContent = `เที่ยวที่ ${found.tripNo} · ${found.planId}`;
+  document.getElementById('sel-shop').textContent = found.shop;
+  document.getElementById('sel-meta').textContent = `${found.type} · ${found.dist} km`;
+
+  switchTab('record');
+  // ใช้ itemId เป็น key สำหรับ TripLog
+  await restoreTripState(itemId);
+  toast(`เลือก: ${found.shop}`);
+}
+
+// ── Restore state ──
+async function restoreTripState(planId) {
+  try {
+    const r    = await fetch(`${GAS_URL}?action=tripState&planId=${planId}`);
+    const data = await r.json();
+    const st   = data.status || 'pending';
+    S.selectedPlan.status = st;
+    updateStatusBadge(st);
+    updateButtons(st);
+
+    const banner = document.getElementById('resume-banner');
+    const detail = document.getElementById('resume-detail');
+    if (st !== 'pending') {
+      const lines = [];
+      if (data.departTime) lines.push(`ออกเดินทาง ${data.departTime} น. · ไมล์ ${data.departOdo}`);
+      if (data.arriveTime) lines.push(`ถึงปลายทาง ${data.arriveTime} น. · ไมล์ ${data.arriveOdo}`);
+      if (data.distance)   lines.push(`ระยะ ${data.distance} km`);
+      detail.textContent = lines.join(' / ');
+      banner.classList.add('show');
+    } else {
+      banner.classList.remove('show');
+    }
+  } catch {
+    updateButtons(S.selectedPlan.status || 'pending');
+  }
+}
+
+async function fetchTripStateQuiet(planId) {
+  try { const r = await fetch(`${GAS_URL}?action=tripState&planId=${planId}`); return await r.json(); }
+  catch { return null; }
+}
+
+function updateStatusBadge(st) {
+  const el = document.getElementById('sel-status');
+  const map = {pending:['sb-pending','รอดำเนินการ'], departed:['sb-active','กำลังเดินทาง'], arrived:['sb-done','ถึงแล้ว'], completed:['sb-complete','เสร็จสิ้น']};
+  const [cls, label] = map[st] || map.pending;
+  el.className = `sb ${cls}`; el.textContent = label;
+}
+
+function updateButtons(st) {
+  document.getElementById('btn-depart').disabled = st !== 'pending';
+  document.getElementById('btn-arrive').disabled = st !== 'departed';
+  const btnC = document.getElementById('btn-complete');
+  btnC.style.display = st === 'arrived' ? 'flex' : 'none';
+}
+
+// ── Modals ──
+function openModal(type) {
+  if (!S.selectedPlan && type !== 'complete') { toast('กรุณาเลือกร้านค้าก่อน'); return; }
+  if (type === 'depart') document.getElementById('md-depart-shop').textContent = S.selectedPlan.shop;
+  if (type === 'arrive') document.getElementById('md-arrive-shop').textContent  = S.selectedPlan.shop;
+  document.getElementById(`modal-${type}`).classList.add('open');
+}
+function closeModal(type) {
+  document.getElementById(`modal-${type}`).classList.remove('open');
+}
+
+// ── Photo ──
+function previewPhoto(stage, input) {
+  const file = input.files[0]; if (!file) return;
+  const prev = document.getElementById(`photo-preview-${stage}`);
+  const btn  = document.getElementById(`photo-btn-${stage}`);
+  prev.src = URL.createObjectURL(file); prev.style.display='block';
+  btn.classList.add('has-photo'); btn.textContent='✅ เลือกรูปแล้ว (แตะเพื่อเปลี่ยน)';
+}
+function resetPhoto(stage) {
+  const prev = document.getElementById(`photo-preview-${stage}`);
+  const btn  = document.getElementById(`photo-btn-${stage}`);
+  const inp  = document.getElementById(`photo-file-${stage}`);
+  prev.style.display='none'; prev.src=''; btn.classList.remove('has-photo');
+  inp.value='';
+  btn.innerHTML = stage==='arrive'
+    ? '📷 ถ่ายรูปหลักฐานการส่ง <span style="color:var(--red)">*จำเป็น</span>'
+    : '📷 ถ่ายรูปก่อนออกเดินทาง (ไม่บังคับ)';
+}
+async function uploadPhoto(stage) {
+  const inp = document.getElementById(`photo-file-${stage}`);
+  if (!inp.files[0]) return null;
+  const file = inp.files[0];
+  const b64  = await fileToBase64(file);
+  try {
+    const r = await fetch(GAS_URL, {method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({action:'uploadPhoto', planId:S.selectedPlan.planId, lineUserId:S.userId,
+        photoBase64:b64.split(',')[1], mimeType:file.type, stage})});
+    const d = await r.json(); return d.fileUrl || null;
+  } catch { return null; }
+}
+function fileToBase64(file) {
+  return new Promise((res,rej) => { const r=new FileReader(); r.onload=()=>res(r.result); r.onerror=rej; r.readAsDataURL(file); });
+}
+
+// ── Submit Depart ──
+async function submitDepart() {
+  const odo  = document.getElementById('inp-depart-odo').value;
+  const note = document.getElementById('inp-depart-note').value;
+  if (!odo) { toast('กรุณากรอกเลขไมล์'); return; }
+  toast('⏳ กำลังบันทึก...');
+  await uploadPhoto('depart');
+  await postData({action:'depart', planId:S.selectedPlan.itemId, lineUserId:S.userId,
+    lineDisplayName:S.displayName, odo:parseFloat(odo), lat:S.gpsLat, lng:S.gpsLng, note}, () => {
+    closeModal('depart'); resetPhoto('depart');
+    document.getElementById('inp-depart-odo').value='';
+    S.selectedPlan.status='departed';
+    updateStatusBadge('departed'); updateButtons('departed');
+    document.getElementById('resume-banner').classList.remove('show');
+    toast('✅ บันทึกออกเดินทางแล้ว');
+    loadPlans();
+  });
+}
+
+// ── Submit Arrive ──
+async function submitArrive() {
+  const odo  = document.getElementById('inp-arrive-odo').value;
+  const note = document.getElementById('inp-arrive-note').value;
+  if (!odo) { toast('กรุณากรอกเลขไมล์'); return; }
+  const inp = document.getElementById('photo-file-arrive');
+  const ts  = await fetchTripStateQuiet(S.selectedPlan.planId);
+  if (!inp.files[0] && !(ts && ts.arrivePhoto)) {
+    toast('📷 กรุณาถ่ายรูปหลักฐานก่อน');
+    document.getElementById('photo-btn-arrive').style.borderColor='var(--red)'; return;
+  }
+  toast('⏳ กำลังอัปโหลดและบันทึก...');
+  await uploadPhoto('arrive');
+  await postData({action:'arrive', planId:S.selectedPlan.itemId, lineUserId:S.userId,
+    odo:parseFloat(odo), lat:S.gpsLat, lng:S.gpsLng, note}, (res) => {
+    closeModal('arrive'); resetPhoto('arrive');
+    document.getElementById('inp-arrive-odo').value='';
+    S.selectedPlan.status='arrived';
+    updateStatusBadge('arrived'); updateButtons('arrived');
+    const dist = res.distance ? ` · ${res.distance} km` : '';
+    toast(`✅ ถึงปลายทางแล้ว${dist} · แจ้ง Supervisor แล้ว`);
+    loadPlans();
+  });
+}
+
+// ── Submit Complete ──
+async function submitComplete() {
+  const odo = document.getElementById('inp-complete-odo').value;
+  await postData({action:'complete', planId:S.selectedPlan.itemId, lineUserId:S.userId,
+    odo:parseFloat(odo)||0, lat:S.gpsLat, lng:S.gpsLng}, () => {
+    closeModal('complete');
+    S.selectedPlan.status='completed';
+    updateStatusBadge('completed'); updateButtons('completed');
+    toast('🏢 กลับถึงบริษัทเรียบร้อย');
+    loadPlans(); loadHistory();
+  });
+}
+
+// ── POST helper ──
+async function postData(payload, onSuccess) {
+  try {
+    const r = await fetch(GAS_URL, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload)});
+    const d = await r.json();
+    if (d.success) onSuccess(d);
+    else if (d.alreadyRecorded) { toast(`ℹ️ บันทึกไปแล้ว (${statusTh(d.status)})`); await restoreTripState(S.selectedPlan.planId); }
+    else toast(`❌ ${d.error||'เกิดข้อผิดพลาด'}`);
+  } catch(e) { toast(`❌ เชื่อมต่อไม่ได้: ${e.message}`); }
+}
+function statusTh(s) {
+  return {pending:'รอ', departed:'กำลังเดินทาง', arrived:'ถึงแล้ว', completed:'เสร็จ'}[s]||s;
+}
+
+// ── History ──
+async function loadHistory() {
+  const url = `${GAS_URL}?action=history&lineUserId=${S.userId}&date=${S.todayStr}`;
+  try {
+    const r = await fetch(url); const d = await r.json();
+    const logs = d.logs || [];
+    const totalDist = logs.reduce((s,l) => s+(parseFloat(l.distance)||0), 0);
+    document.getElementById('stat-trips').textContent = logs.length;
+    document.getElementById('stat-dist').textContent  = totalDist.toFixed(1);
+    const el = document.getElementById('history-list');
+    if (!logs.length) { el.innerHTML=`<div class="empty"><span class="empty-icon">📊</span>ยังไม่มีการบันทึก</div>`; return; }
+    el.innerHTML = logs.map(l => `
+      <div class="hist-item">
+        <div class="hist-shop">${l.planId}</div>
+        <div class="hist-row">
+          ${l.departTime?`<span class="hist-pill">🚗 ออก ${fmtTime(l.departTime)}</span>`:''}
+          ${l.arriveTime?`<span class="hist-pill">📍 ถึง ${fmtTime(l.arriveTime)}</span>`:''}
+          ${l.distance  ?`<span class="hist-pill">📏 ${l.distance} km</span>`:''}
+          <span class="hist-pill sb ${l.status==='completed'?'sb-complete':l.status==='arrived'?'sb-done':'sb-active'}" style="padding:4px 9px">${statusTh(l.status)}</span>
+        </div>
+      </div>`).join('');
+  } catch { document.getElementById('history-list').innerHTML=`<div class="empty">โหลดไม่ได้</div>`; }
+}
+function fmtTime(ts) { if(!ts) return '—'; try { return new Date(ts).toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit'}); } catch{return ts;} }
+
+// ── Tab ──
+function switchTab(tab) {
+  ['plans','record','history'].forEach(p => {
+    document.getElementById(`page-${p}`).classList.toggle('active', p===tab);
+    document.getElementById(`tab-${p}`).classList.toggle('active', p===tab);
+  });
+  if (tab==='history') loadHistory();
+}
+
+// ── Toast ──
+function toast(msg, dur=2800) {
+  const el = document.getElementById('toast');
+  el.textContent=msg; el.classList.add('show');
+  setTimeout(()=>el.classList.remove('show'), dur);
+}
+
+init();
+</script>
+</body>
+</html>
