@@ -791,22 +791,22 @@ function replyPlanSummary(userId, replyToken) {
             type:'box', layout:'horizontal',
             contents:[
               { type:'text', text:`🚚 เที่ยวที่ ${tripNo}`, weight:'bold', color:'#ffffff', size:'md', flex:1 },
-              { type:'text', text:`${doneCount}/${shops.length} ร้าน`, size:'sm', color:'rgba(255,255,255,0.9)', align:'end', flex:0 }
+              { type:'text', text:`${doneCount}/${shops.length} ร้าน`, size:'sm', color:'#FFFFFFDD', align:'end', flex:0 }
             ]
           },
           {
             type:'box', layout:'horizontal', margin:'xs',
             contents:[
-              { type:'text', text:`👤 ${driverName}`, size:'xs', color:'rgba(255,255,255,0.85)', flex:1 },
-              { type:'text', text:`📅 ${todayTH}`, size:'xs', color:'rgba(255,255,255,0.85)', align:'end', flex:0 }
+              { type:'text', text:`👤 ${driverName}`, size:'xs', color:'#FFFFFFCC', flex:1 },
+              { type:'text', text:`📅 ${todayTH}`, size:'xs', color:'#FFFFFFCC', align:'end', flex:0 }
             ]
           },
           {
             type:'box', layout:'horizontal', margin:'xs',
             contents:[
               { type:'text', text: allDone ? '✅ ส่งครบแล้ว' : hasActive ? '🔵 กำลังดำเนินการ' : '⬜ รอดำเนินการ',
-                size:'xs', color:'rgba(255,255,255,0.95)', flex:1 },
-              { type:'text', text:`📏 ~${totalDist} km`, size:'xs', color:'rgba(255,255,255,0.9)', align:'end', flex:0 }
+                size:'xs', color:'#FFFFFFF2', flex:1 },
+              { type:'text', text:`📏 ~${totalDist} km`, size:'xs', color:'#FFFFFFDD', align:'end', flex:0 }
             ]
           }
         ]
@@ -867,7 +867,7 @@ function replyTodayStatus(userId, replyToken) {
       layout  : 'vertical',
       contents: [
         { type:'text', text:'สรุปวันนี้', weight:'bold', color:'#ffffff', size:'md' },
-        { type:'text', text:`${doneCount}/${logs.length} ร้าน · รวม ${totalDist} km`, color:'rgba(255,255,255,0.8)', size:'sm' }
+        { type:'text', text:`${doneCount}/${logs.length} ร้าน · รวม ${totalDist} km`, color:'#FFFFFFCC', size:'sm' }
       ],
       backgroundColor: '#1565C0',
       paddingAll: '14px'
