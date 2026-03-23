@@ -91,8 +91,10 @@ body{font-family:-apple-system,'Helvetica Neue',sans-serif;background:var(--bg);
 .ab-green:disabled{background:#C8EDD6;color:#6BAF82;pointer-events:none}
 .ab-amber{background:#F57C00;color:#fff}
 .ab-amber:disabled{background:#FFE0B2;color:#BF5E00;pointer-events:none}
-.ab-return{background:var(--bg);border:1.5px solid var(--border);color:var(--text2);border-radius:14px;padding:14px;font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;width:100%;margin-bottom:10px}
-.ab-return.show{display:flex}
+.ab-return-big{background:#FF8F00;color:#fff;width:100%;margin-bottom:10px}
+.ab-return-big:disabled{background:#FFD099;color:#A05800;pointer-events:none}
+.ab-complete-big{background:#424242;color:#fff;width:100%;margin-bottom:10px}
+.ab-complete-big:disabled{background:#B0B0B0;color:#666;pointer-events:none}
 
 /* ── Modal ── */
 .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:100;align-items:flex-end;justify-content:center}
@@ -209,11 +211,11 @@ input[type=file]{display:none}
         <span class="ab-icon">📍</span>ถึงปลายทาง
       </button>
     </div>
-    <button class="ab-return" id="btn-return" onclick="openModal('return')" style="display:none;background:#FF8F00">
-      🔄 กลับบริษัท
+    <button class="action-btn ab-return-big" id="btn-return" onclick="openModal('return')" style="display:none">
+      <span class="ab-icon">🔄</span>กลับบริษัท<span style="font-size:11px;font-weight:500;opacity:.85">กำลังเดินทางกลับ</span>
     </button>
-    <button class="ab-return" id="btn-complete" onclick="openModal('complete')" style="display:none;background:#757575">
-      🏢 ถึงบริษัท
+    <button class="action-btn ab-complete-big" id="btn-complete" onclick="openModal('complete')" style="display:none">
+      <span class="ab-icon">🏢</span>ถึงบริษัทแล้ว<span style="font-size:11px;font-weight:500;opacity:.85">เสร็จสิ้นการจัดส่ง</span>
     </button>
   </div>
 </div>
@@ -571,9 +573,9 @@ function updateButtons(st, allShopsArrived) {
   // กลับบริษัท: แสดงเมื่อถึงร้านแล้ว AND ทุกร้านในเที่ยวนี้ส่งครบ
   const btnReturn = document.getElementById('btn-return');
   btnReturn.style.display = (st === 'arrived' && allShopsArrived) ? 'flex' : 'none';
-  // ถึงบริษัท: แสดงเมื่อกำลังกลับบริษัท
+  // ถึงบริษัท: แสดงเมื่อกำลังกลับบริษัท หรือ arrived (กรณี training ไม่ต้องกด กลับบริษัทก่อน)
   const btnC = document.getElementById('btn-complete');
-  btnC.style.display = st === 'returning' ? 'flex' : 'none';
+  btnC.style.display = (st === 'returning') ? 'flex' : 'none';
 }
 
 // ── Modals ──
