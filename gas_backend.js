@@ -710,19 +710,15 @@ function handleLineEvent(event) {
 
 // ── Reply: แผนงานวันนี้ของพนักงานคนนั้น ──
 function replyPlanSummary(userId, replyToken) {
-  const tz      = Session.getScriptTimeZone();
-  const today   = Utilities.formatDate(new Date(), tz, 'yyyy-MM-dd');
-  const todayTH = Utilities.formatDate(new Date(), tz, 'dd/MM/yyyy');
-  const result  = getPlans({ date: today, lineUserId: userId });
-  const plans   = result.plans || [];
-  const driverName = result.driverName || '';
+  const today = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd');
+  const result = getPlans({ date: today, lineUserId: userId });
+  const plans  = result.plans || [];
 
   if (!plans.length) {
-    replyText(replyToken, `📋 ไม่มีแผนงานสำหรับวันนี้ (${todayTH}) ครับ`);
+    replyText(replyToken, `ไม่มีแผนงานสำหรับวันนี้ (${today}) ครับ`);
     return;
   }
 
-  // Group by TripNo
   const tripMap = {};
   plans.forEach(p => {
     const k = String(p.tripNo || '1');
@@ -730,107 +726,57 @@ function replyPlanSummary(userId, replyToken) {
     tripMap[k].push(p);
   });
 
-  const statusLabel = {
-    pending  : '⬜ รอดำเนินการ',
-    departed : '🔵 กำลังเดินทาง',
-    arrived  : '✅ ถึงแล้ว',
-    returning: '🔄 กำลังกลับ',
-    completed: '🏁 เสร็จสิ้น'
-  };
-
-  // สร้าง Bubble ต่อ 1 เที่ยว
   const bubbles = Object.entries(tripMap).map(([tripNo, shops]) => {
-    const doneCount  = shops.filter(s => s.status === 'arrived' || s.status === 'completed').length;
-    const totalDist  = shops.reduce((s, p) => s + (parseFloat(p.dist) || 0), 0).toFixed(1);
-    const allDone    = doneCount === shops.length;
-    const hasActive  = shops.some(s => s.status === 'departed' || s.status === 'returning');
-    const headerColor = allDone ? '#2E7D32' : hasActive ? '#1565C0' : '#06C755';
-
-    // Shop rows
-    const shopRows = [];
-    shops.forEach((s, i) => {
-      if (i > 0) shopRows.push({ type:'separator', margin:'md' });
-
-      shopRows.push({
-        type:'box', layout:'vertical', margin:'md', spacing:'xs',
-        contents:[
-          // บรรทัด 1: ชื่อร้าน
-          {
-            type:'box', layout:'horizontal', spacing:'sm',
-            contents:[
-              { type:'text', text: s.shop, size:'sm', weight:'bold', wrap:true, color:'#111111', flex:1 }
-            ]
-          },
-          // บรรทัด 2: Plan ID + ระยะทาง
-          {
-            type:'box', layout:'horizontal', spacing:'sm',
-            contents:[
-              { type:'text', text:`📋 ${s.planId}`, size:'xs', color:'#666666', flex:3, wrap:true },
-              { type:'text', text:`📏 ${s.dist} km`, size:'xs', color:'#666666', flex:2, align:'end' }
-            ]
-          },
-          // บรรทัด 3: ประเภทงาน + สถานะ
-          {
-            type:'box', layout:'horizontal', spacing:'sm',
-            contents:[
-              { type:'text', text: s.type ? `🚛 ${s.type}` : ' ', size:'xs', color:'#888888', flex:3 },
-              { type:'text', text: statusLabel[s.status] || '⬜ รอดำเนินการ', size:'xs', color:'#555555', flex:2, align:'end', wrap:false }
-            ]
-          }
-        ]
-      });
-    });
+    const doneCount = shops.filter(s => s.status === 'arrived' || s.status === 'completed').length;
+    const rows = shops.map(s => ({
+      type   : 'box',
+      layout : 'horizontal',
+      contents: [
+        { type:'text', text: statusIcon(s.status), size:'sm', flex:0 },
+        { type:'text', text: s.shop, size:'sm', flex:5, wrap:true, color:'#333333' },
+        { type:'text', text: `${s.dist} km`, size:'xs', flex:2, align:'end', color:'#888888' }
+      ],
+      margin: 'sm'
+    }));
 
     return {
       type  : 'bubble',
       header: {
-        type:'box', layout:'vertical', paddingAll:'14px',
-        backgroundColor: headerColor,
-        contents:[
-          {
-            type:'box', layout:'horizontal',
-            contents:[
-              { type:'text', text:`🚚 เที่ยวที่ ${tripNo}`, weight:'bold', color:'#ffffff', size:'md', flex:1 },
-              { type:'text', text:`${doneCount}/${shops.length} ร้าน`, size:'sm', color:'#FFFFFFDD', align:'end', flex:0 }
-            ]
-          },
-          {
-            type:'box', layout:'horizontal', margin:'xs',
-            contents:[
-              { type:'text', text:`👤 ${driverName}`, size:'xs', color:'#FFFFFFCC', flex:1 },
-              { type:'text', text:`📅 ${todayTH}`, size:'xs', color:'#FFFFFFCC', align:'end', flex:0 }
-            ]
-          },
-          {
-            type:'box', layout:'horizontal', margin:'xs',
-            contents:[
-              { type:'text', text: allDone ? '✅ ส่งครบแล้ว' : hasActive ? '🔵 กำลังดำเนินการ' : '⬜ รอดำเนินการ',
-                size:'xs', color:'#FFFFFFF2', flex:1 },
-              { type:'text', text:`📏 ~${totalDist} km`, size:'xs', color:'#FFFFFFDD', align:'end', flex:0 }
-            ]
-          }
-        ]
+        type    : 'box',
+        layout  : 'vertical',
+        contents: [{
+          type  : 'text',
+          text  : `เที่ยวที่ ${tripNo}  •  ${doneCount}/${shops.length} ร้าน`,
+          weight: 'bold',
+          color : '#ffffff',
+          size  : 'md'
+        }],
+        backgroundColor: '#06C755',
+        paddingAll: '14px'
       },
       body: {
-        type:'box', layout:'vertical', paddingAll:'14px',
-        contents: shopRows
+        type    : 'box',
+        layout  : 'vertical',
+        contents: rows,
+        paddingAll: '14px'
       },
       footer: {
-        type:'box', layout:'vertical', paddingAll:'10px',
-        contents:[{
-          type:'button', style:'primary', color:'#06C755', height:'sm',
-          action:{ type:'uri', label:'✍️ เปิดแอปบันทึก', uri:`https://liff.line.me/${LIFF_ID}` }
-        }]
+        type    : 'box',
+        layout  : 'vertical',
+        contents: [{
+          type  : 'button',
+          style : 'primary',
+          color : '#06C755',
+          action: { type:'uri', label:'เปิดแอปบันทึก', uri:`https://liff.line.me/${LIFF_ID}` }
+        }],
+        paddingAll: '12px'
       }
     };
   });
 
-  const totalAllDist = plans.reduce((s, p) => s + (parseFloat(p.dist) || 0), 0).toFixed(1);
-  const altText = `📋 แผนงานวันนี้ ${driverName} — ${plans.length} ร้าน ~${totalAllDist} km`;
-
   const message = bubbles.length === 1
-    ? { type:'flex', altText, contents: bubbles[0] }
-    : { type:'flex', altText, contents: { type:'carousel', contents: bubbles } };
+    ? { type:'flex', altText:`แผนงานวันนี้ ${plans.length} ร้าน`, contents: bubbles[0] }
+    : { type:'flex', altText:`แผนงานวันนี้ ${plans.length} ร้าน`, contents: { type:'carousel', contents: bubbles } };
 
   callReplyAPI(replyToken, [message]);
 }
